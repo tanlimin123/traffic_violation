@@ -1,0 +1,146 @@
+---
+title: "Class6_Regression"
+author: "Edwin Lo"
+date: "2/13/2019"
+output: html_document
+---
+
+```{r basicfcn, include=F}
+# can add quietly=T option to the require() function
+loadPkg = function(x) { if (!require(x,character.only=T, quietly =T)) { install.packages(x,dep=T,repos="http://cran.us.r-project.org"); if(!require(x,character.only=T)) stop("Package not found") } }
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r base_lib}
+
+library('leaflet')
+library("ggplot2")
+library(dplyr)
+library(plyr)
+library('lubridate')
+library(gridExtra)
+library('tibble')
+library(knitr)
+library(ggpubr)
+library(data.table)
+library(Rmisc)
+library(chron)
+library(lubridate)
+
+
+
+```
+
+```{r import data}
+
+
+data<- data.frame(read.csv("Traffic_Violations.csv",header=TRUE,nrow=5000))
+setnames(data, old=c("Personal.Injury"), new=c("Personal_Injury"))
+data$date<-as.Date(data$Date.Of.Stop,"%m/%d/%Y")
+data$week<-wday(data$date)
+data$month <- as.numeric(format(data$date,'%m'))
+data$week<-wday(data$date)
+data$Year <- NULL
+data$Year<-year(data$date)
+data$hour<-format(as.POSIXct(data$Time.Of.Stop, format="%H:%M:%S"), format="%H")
+str(data)
+
+```
+
+```{r mapping}
+
+
+leaflet(data)%>%
+addTiles()%>%
+addProviderTiles("CartoDB.Positron")%>% 
+addMarkers(~Longitude ,~Latitude,clusterOptions = markerClusterOptions())
+
+```
+```{r month}
+p1 <- data%>%
+  group_by(month) %>%
+  dplyr::count() %>%
+  print(n)%>%
+  ggplot(aes(reorder(month, month), n, fill = month)) +
+  geom_col() +theme(legend.position = "none") +
+  labs(x = "Month", y = "Number of traffic violation")
+  
+multiplot(p1 ,layout=layout)
+```
+
+
+
+
+
+
+```{r week}
+p1 <- data%>%
+  group_by(week) %>%
+  dplyr::count() %>%
+  print(n)%>%
+  ggplot(aes(reorder(week, week), n, fill = week)) +
+  geom_col() +theme(legend.position = "none") +
+  labs(x = "Weekdays", y = "Number of traffic violation")
+
+
+multiplot(p1 ,layout=layout)
+```
+
+```{r year}
+p1 <- data%>%
+  group_by(Year) %>%
+  dplyr::count() %>%
+  print(n)%>%
+  ggplot(aes(reorder(Year, Year),n, fill = Year)) +
+  geom_col() +theme(legend.position = "none") +
+  labs(x = "Years", y = "Number of traffic violation")
+
+
+multiplot(p1 ,layout=layout)
+```
+```{r hour}
+
+p1 <- data%>%
+  group_by(hour) %>%
+  dplyr::count() %>%
+  print(n)%>%
+  ggplot(aes(reorder(hour,hour), n, fill = hour)) +
+  geom_col() +theme(legend.position = "none") +
+  labs(x = "hour", y = "Number of traffic violation")
+
+suppressWarnings(multiplot(p1 ,layout=layout))
+
+
+```
+
+```{r date_and_gender}
+p1 <-subset(data, Year =='2016' ) %>%
+ 
+ 
+  ggplot(aes(Date.Of.Stop,Gender,fill=Gender) ) +
+  geom_bar(stat="identity") +coord_flip()
+  labs(x = "dates")
+# ggplot(data=dat, aes(x=Fruit, y=Count, fill=Bug)) + geom_bar(stat="identity")
+multiplot(p1, layout=layout)
+```
+
+```{r day_and_hour}
+p1 <-data %>%
+ group_by(week, hour) %>%
+  dplyr::count() %>%
+  mutate (frequencey_of_violation=n)%>%
+
+  ggplot(aes(week,hour,fill = frequencey_of_violation)) +
+
+  geom_tile() +
+
+  labs(x = "day of the week", y = "hours of the week") +
+
+  scale_fill_distiller(palette = "Spectral")
+ 
+  
+multiplot(p1, layout=layout)
+```
